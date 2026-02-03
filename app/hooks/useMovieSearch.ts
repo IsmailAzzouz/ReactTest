@@ -52,9 +52,12 @@ export function useMovieSearch(title: string): MovieSearchResult {
 
   const normalizedTitle = useMemo(() => title.trim(), [title]);
 
+  /**
+   * Fetches movies from the OMDb API with retry logic and sequential logging.
+   * Handles network failures gracefully and retries up to 3 times.
+   */
   const fetchMovies = useCallback(async (currentTitle: string) => {
     controllerRef.current?.abort();
-
     if (!currentTitle) {
       setMovies([]);
       setError(null);
@@ -64,38 +67,48 @@ export function useMovieSearch(title: string): MovieSearchResult {
 
     const controller = new AbortController();
     controllerRef.current = controller;
-
     setIsLoading(true);
     setError(null);
 
-    try {
-      const response = await fetch(`${OMDB_ENDPOINT}${encodeURIComponent(currentTitle)}`, {
-        signal: controller.signal,
-      });
+    // Implement retry logic (3 attempts max)
+    for (let attempt = 1; attempt <= 3; attempt++) {
+      try {
+        console.log(`[MovieSearch] Attempt ${attempt}: Fetching "${currentTitle}"`);
+        const response = await fetch(`${OMDB_ENDPOINT}${encodeURIComponent(currentTitle)}`, {
+          signal: controller.signal,
+        });
 
-      if (!response.ok) {
-        throw new Error(`Request failed with status ${response.status}`);
+        if (!response.ok) throw new Error(`HTTP error ${response.status}`);
+
+        const data: OmdbResponse = await response.json();
+
+        if (data.Response === "False") {
+          console.warn(`[MovieSearch] API Error: ${data.Error}`);
+          setMovies([]);
+          setError(data.Error ?? "Movie not found.");
+          break; // Stop retrying on business logic errors (e.g. "not found")
+        }
+
+        setMovies((data.Search ?? []).map(toMovieSummary));
+        console.log(`[MovieSearch] Success: Found ${data.Search?.length} movies`);
+        setError(null);
+        break; // Success, exit retry loop
+      } catch (err: any) {
+        if (controller.signal.aborted) return;
+        console.error(`[MovieSearch] Attempt ${attempt} failed: ${err.message}`);
+
+        if (attempt === 3) {
+          setError("Failed to fetch movies. Please check your connection.");
+          setMovies([]);
+        } else {
+          // Exponential backoff or simple delay before retry
+          await new Promise((resolve) => setTimeout(resolve, attempt * 1000));
+        }
       }
+    }
 
-      const data: OmdbResponse = await response.json();
-
-      if (data.Response === "False") {
-        setMovies([]);
-        setError(data.Error ?? "No movies found.");
-        return;
-      }
-
-      setMovies((data.Search ?? []).map(toMovieSummary));
-    } catch (err) {
-      if (controller.signal.aborted) return;
-
-      const message = err instanceof Error ? err.message : "Unknown error occurred.";
-      setError(message);
-      setMovies([]);
-    } finally {
-      if (!controller.signal.aborted) {
-        setIsLoading(false);
-      }
+    if (!controller.signal.aborted) {
+      setIsLoading(false);
     }
   }, []);
 

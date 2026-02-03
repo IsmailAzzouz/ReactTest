@@ -1,4 +1,5 @@
 import { render, screen } from "@testing-library/react";
+import { MemoryRouter } from "react-router";
 import { describe, expect, it } from "vitest";
 
 import { MovieResultItem } from "./movie-result-item";
@@ -15,7 +16,11 @@ describe("MovieResultItem", () => {
 
   it("renders the movie title, year, and uppercase type", () => {
     const movie = createMovie();
-    render(<MovieResultItem movie={movie} />);
+    render(
+      <MemoryRouter>
+        <MovieResultItem movie={movie} />
+      </MemoryRouter>
+    );
 
     expect(screen.getByText("Batman Begins")).toBeDefined();
     expect(screen.getByText("2005")).toBeDefined();
@@ -26,7 +31,11 @@ describe("MovieResultItem", () => {
 
   it("shows the fallback initial when poster is unavailable", () => {
     const movie = createMovie({ title: "Guardians", poster: "N/A" });
-    render(<MovieResultItem movie={movie} />);
+    render(
+      <MemoryRouter>
+        <MovieResultItem movie={movie} />
+      </MemoryRouter>
+    );
 
     const fallbackInitial = screen
       .getAllByText("G")
@@ -41,7 +50,11 @@ describe("MovieResultItem", () => {
       year: "",
       type: "",
     });
-    render(<MovieResultItem movie={movie} />);
+    render(
+      <MemoryRouter>
+        <MovieResultItem movie={movie} />
+      </MemoryRouter>
+    );
 
     const fallbackInitial = screen
       .getAllByText("?")

@@ -1,3 +1,4 @@
+import { Link as RouterLink } from "react-router";
 import Avatar from "@mui/material/Avatar";
 import ListItem from "@mui/material/ListItem";
 import ListItemAvatar from "@mui/material/ListItemAvatar";
@@ -18,7 +19,20 @@ export function MovieResultItem({ movie }: MovieResultItemProps) {
   const secondaryText = movie.year || "UNKNOWN";
 
   return (
-    <ListItem alignItems="flex-start" disableGutters sx={{ py: 1 }}>
+    <ListItem
+      component={RouterLink}
+      to={`/movie/${movie.imdbID}`}
+      alignItems="flex-start"
+      disableGutters
+      sx={{
+        py: 1,
+        textDecoration: 'none',
+        color: 'inherit',
+        '&:hover': {
+          bgcolor: 'action.hover',
+        }
+      }}
+    >
       <ListItemAvatar>
         <Avatar
           variant="rounded"
@@ -44,4 +58,5 @@ export function MovieResultItem({ movie }: MovieResultItemProps) {
       />
     </ListItem>
   );
+
 }
